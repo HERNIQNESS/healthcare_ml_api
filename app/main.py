@@ -10,9 +10,9 @@ from app.schemas import PatientData
 
 app = FastAPI()
 
-# -------------------------------
-# CORS (allow frontend access)
-# -------------------------------
+
+# CORS (frontend <-> backend)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,9 +21,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# -------------------------------
-# Loading model + encoders safely
-# -------------------------------
+
+#  Load model + encoders safely
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 model_path = os.path.join(BASE_DIR, "models", "model.joblib")
@@ -32,14 +32,17 @@ encoder_path = os.path.join(BASE_DIR, "models", "encoders.joblib")
 model = joblib.load(model_path)
 encoders = joblib.load(encoder_path)
 
-# Serve frontend get
+
+#  Serve frontend
+
 @app.get("/")
 def serve_frontend():
     return FileResponse(os.path.join(BASE_DIR, "frontend", "index.html"))
 
 app.mount("/frontend", StaticFiles(directory=os.path.join(BASE_DIR, "frontend")), name="frontend")
 
-# Prediction endpoint
+
+# Prediction endpoint 
 
 @app.post("/predict")
 def predict(data: PatientData):
@@ -47,9 +50,7 @@ def predict(data: PatientData):
         # Convert input → DataFrame
         df = pd.DataFrame([data.dict()])
 
-    
-        # Normalized inputs 
-        
+        #  Normalize inputs
         df["Gender"] = df["Gender"].str.strip().str.title()
         df["Blood Type"] = df["Blood Type"].str.strip().str.upper()
         df["Medical Condition"] = df["Medical Condition"].str.strip().str.title()
@@ -64,36 +65,28 @@ def predict(data: PatientData):
             "Admission Type", "Medication", "Length of Stay"
         ]]
 
-        
-        # Apply encoders safely
-        
+        #  Apply encoders safely
         for col in df.columns:
             if col in encoders:
                 try:
                     df[col] = encoders[col].transform(df[col])
                 except Exception:
                     return {
-                        "predicted_test_result": "error",
-                        "details": f"Invalid value '{df[col].iloc[0]}' for column '{col}'"
+                        "error": f"Invalid value '{df[col].iloc[0]}' for column '{col}'"
                     }
 
-        # -------------------------------
-        # Predict
-        # -------------------------------
+        #  Predict
         prediction = model.predict(df)[0]
 
-        mapping = {
-            0: "normal",
-            1: "abnormal",
-            2: "inconclusive"
-        }
-
+        
+        #  DEBUG OUTPUT 
+        
         return {
-            "predicted_test_result": mapping.get(int(prediction), "unknown")
+            "raw_prediction": str(prediction),
+            "type": str(type(prediction))
         }
 
     except Exception as e:
         return {
-            "predicted_test_result": "error",
-            "details": str(e)
+            "error": str(e)
         }
