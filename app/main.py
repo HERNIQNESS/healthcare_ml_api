@@ -10,7 +10,9 @@ from app.schemas import PatientData
 
 app = FastAPI()
 
-# ✅ CORS (frontend <-> backend communication)
+# -------------------------------
+# CORS (allow frontend access)
+# -------------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,48 +21,79 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Load model + encoders safely
-model = joblib.load("models/model.joblib")
-encoders = joblib.load("models/encoders.joblib")
+# -------------------------------
+# Loading model + encoders safely
+# -------------------------------
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# ✅ Serve frontend (THIS is what you were missing)
+model_path = os.path.join(BASE_DIR, "models", "model.joblib")
+encoder_path = os.path.join(BASE_DIR, "models", "encoders.joblib")
+
+model = joblib.load(model_path)
+encoders = joblib.load(encoder_path)
+
+# Serve frontend get
 @app.get("/")
 def serve_frontend():
-    return FileResponse(os.path.join("frontend", "index.html"))
+    return FileResponse(os.path.join(BASE_DIR, "frontend", "index.html"))
 
-# ✅ Optional: serve static files if needed later
-app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
+app.mount("/frontend", StaticFiles(directory=os.path.join(BASE_DIR, "frontend")), name="frontend")
 
-# ✅ Prediction endpoint
+# Prediction endpoint
+
 @app.post("/predict")
 def predict(data: PatientData):
     try:
         # Convert input → DataFrame
         df = pd.DataFrame([data.dict()])
 
-        # 🔥 FORCE correct feature order (this avoids XGBoost errors)
+    
+        # Normalized inputs 
+        
+        df["Gender"] = df["Gender"].str.strip().str.title()
+        df["Blood Type"] = df["Blood Type"].str.strip().str.upper()
+        df["Medical Condition"] = df["Medical Condition"].str.strip().str.title()
+        df["Insurance Provider"] = df["Insurance Provider"].str.strip().str.title()
+        df["Admission Type"] = df["Admission Type"].str.strip().str.title()
+        df["Medication"] = df["Medication"].str.strip().str.title()
+
+        # Force correct feature order
         df = df[[
             "Age", "Gender", "Blood Type", "Medical Condition",
             "Insurance Provider", "Billing Amount",
             "Admission Type", "Medication", "Length of Stay"
         ]]
 
-        # 🔥 Apply encoders safely
+        
+        # Apply encoders safely
+        
         for col in df.columns:
             if col in encoders:
-                df[col] = encoders[col].transform(df[col])
+                try:
+                    df[col] = encoders[col].transform(df[col])
+                except Exception:
+                    return {
+                        "predicted_test_result": "error",
+                        "details": f"Invalid value '{df[col].iloc[0]}' for column '{col}'"
+                    }
 
-        # 🔥 Predict
+        # -------------------------------
+        # Predict
+        # -------------------------------
         prediction = model.predict(df)[0]
 
-        # 🔥 Map output
         mapping = {
             0: "normal",
             1: "abnormal",
             2: "inconclusive"
         }
 
-        return {"predicted_test_result": mapping[int(prediction)]}
+        return {
+            "predicted_test_result": mapping.get(int(prediction), "unknown")
+        }
 
     except Exception as e:
-        return {"error": str(e)}
+        return {
+            "predicted_test_result": "error",
+            "details": str(e)
+        }
