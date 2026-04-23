@@ -4,9 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MedPredict — Healthcare Test Result Predictor</title>
+
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       font-family: 'DM Sans', sans-serif;
       background: #0a0f1e;
@@ -14,229 +17,199 @@
       padding: 2rem 1rem;
       color: #cbd5e1;
     }
+
     .header { text-align: center; margin-bottom: 2.5rem; }
-    .logo-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 6px; }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
     .logo-icon {
-      width: 36px; height: 36px;
+      width: 36px;
+      height: 36px;
       background: linear-gradient(135deg, #1d6fa5, #2dd4bf);
-      border-radius: 10px; display: flex;
-      align-items: center; justify-content: center;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .logo-icon svg { width: 20px; height: 20px; fill: white; }
-    .brand { font-family: 'Playfair Display', serif; font-size: 22px; color: #e2e8f0; letter-spacing: 0.3px; }
-    .subtitle { font-size: 13px; color: #64748b; letter-spacing: 0.5px; text-transform: uppercase; }
+
+    .brand {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      color: #e2e8f0;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+
     .card {
-      background: #111827; border: 0.5px solid #1e2d45;
-      border-radius: 16px; padding: 2rem;
-      max-width: 520px; margin: 0 auto;
+      background: #111827;
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 520px;
+      margin: 0 auto;
     }
-    .section-label {
-      font-size: 11px; font-weight: 500; color: #475569;
-      text-transform: uppercase; letter-spacing: 1px;
-      margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
     }
-    .section-label::after { content: ''; flex: 1; height: 0.5px; background: #1e2d45; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-    .grid-1 { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 12px; }
-    .field { display: flex; flex-direction: column; gap: 5px; }
-    .field label { font-size: 11px; color: #64748b; font-weight: 500; letter-spacing: 0.4px; }
-    .field input, .field select {
-      background: #0d1526; border: 0.5px solid #1e2d45;
-      border-radius: 8px; padding: 10px 12px;
-      font-size: 14px; color: #cbd5e1;
-      font-family: 'DM Sans', sans-serif;
-      outline: none; transition: border-color 0.15s; width: 100%;
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
     }
-    .field input:focus, .field select:focus { border-color: #2563eb; }
-    .field input::placeholder { color: #334155; }
-    .field select option { background: #111827; }
-    .section-gap { margin-bottom: 20px; }
+
+    input, select {
+      background: #0d1526;
+      border: 1px solid #1e2d45;
+      border-radius: 8px;
+      padding: 10px;
+      color: white;
+    }
+
     .btn {
-      width: 100%; padding: 13px;
+      width: 100%;
+      padding: 13px;
       background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
-      border: none; border-radius: 10px; color: white;
-      font-size: 15px; font-weight: 500;
-      font-family: 'DM Sans', sans-serif;
-      cursor: pointer; transition: opacity 0.15s, transform 0.1s;
-      margin-top: 8px; letter-spacing: 0.3px;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      cursor: pointer;
+      margin-top: 10px;
     }
-    .btn:hover { opacity: 0.9; }
-    .btn:active { transform: scale(0.99); }
-    .btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
     .result-box {
-      margin-top: 16px; padding: 14px 16px;
-      border-radius: 10px; font-size: 14px; font-weight: 500;
-      display: none; align-items: center; gap: 10px;
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 10px;
+      display: none;
     }
-    .result-box.show { display: flex; }
-    .result-box.normal   { background: #052e16; border: 0.5px solid #166534; color: #4ade80; }
-    .result-box.abnormal { background: #450a0a; border: 0.5px solid #991b1b; color: #f87171; }
-    .result-box.inconclusive { background: #1c1917; border: 0.5px solid #44403c; color: #a8a29e; }
-    .result-box.error    { background: #1e1a00; border: 0.5px solid #713f12; color: #fbbf24; }
-    .result-icon { width: 20px; height: 20px; flex-shrink: 0; }
-    @media (max-width: 480px) {
-      .grid-2 { grid-template-columns: 1fr; }
-      .card { padding: 1.25rem; }
-    }
+
+    .show { display: block; }
+
+    .normal { background: #052e16; color: #4ade80; }
+    .abnormal { background: #450a0a; color: #f87171; }
+    .inconclusive { background: #1c1917; color: #a8a29e; }
+    .error { background: #1e1a00; color: #fbbf24; }
   </style>
 </head>
+
 <body>
 
 <div class="header">
   <div class="logo-row">
-    <div class="logo-icon">
-      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H7l5-8v4h4l-5 8z"/></svg>
-    </div>
+    <div class="logo-icon"></div>
     <span class="brand">MedPredict</span>
   </div>
-  <div class="subtitle">Clinical Test Result Prediction System</div>
+  <div class="subtitle">Clinical Prediction System</div>
 </div>
 
 <div class="card">
 
-  <div class="section-gap">
-    <div class="section-label">Patient demographics</div>
-    <div class="grid-2">
-      <div class="field">
-        <label>Age</label>
-        <input id="Age" type="number" placeholder="e.g. 45" min="0" max="120">
-      </div>
-      <div class="field">
-        <label>Gender</label>
-        <select id="Gender">
-          <option value="" disabled selected>Select</option>
-          <option>Male</option>
-          <option>Female</option>
-          <option>Other</option>
-        </select>
-      </div>
+  <div class="grid-2">
+    <div class="field">
+      <label>Age</label>
+      <input id="Age" type="number">
     </div>
-    <div class="grid-2">
-      <div class="field">
-        <label>Blood Type</label>
-        <select id="Blood Type">
-          <option value="" disabled selected>Select</option>
-          <option>A+</option><option>A-</option>
-          <option>B+</option><option>B-</option>
-          <option>AB+</option><option>AB-</option>
-          <option>O+</option><option>O-</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Medical Condition</label>
-        <input id="Medical Condition" placeholder="e.g. Hypertension">
-      </div>
+
+    <div class="field">
+      <label>Gender</label>
+      <select id="Gender">
+        <option>Male</option>
+        <option>Female</option>
+      </select>
     </div>
   </div>
 
-  <div class="section-gap">
-    <div class="section-label">Admission details</div>
-    <div class="grid-2">
-      <div class="field">
-        <label>Admission Type</label>
-        <select id="Admission Type">
-          <option value="" disabled selected>Select</option>
-          <option>Emergency</option>
-          <option>Elective</option>
-          <option>Urgent</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Length of Stay (days)</label>
-        <input id="Length of Stay" type="number" placeholder="e.g. 5" min="0">
-      </div>
-    </div>
-    <div class="grid-2">
-      <div class="field">
-        <label>Medication</label>
-        <input id="Medication" placeholder="e.g. Metformin">
-      </div>
-      <div class="field">
-        <label>Billing Amount ($)</label>
-        <input id="Billing Amount" type="number" placeholder="e.g. 12500.00" min="0" step="0.01">
-      </div>
-    </div>
+  <div class="grid-2">
+    <input id="Blood Type" placeholder="Blood Type">
+    <input id="Medical Condition" placeholder="Condition">
   </div>
 
-  <div class="section-gap">
-    <div class="section-label">Insurance</div>
-    <div class="grid-1">
-      <div class="field">
-        <label>Insurance Provider</label>
-        <input id="Insurance Provider" placeholder="e.g. Blue Cross Blue Shield">
-      </div>
-    </div>
+  <div class="grid-2">
+    <input id="Admission Type" placeholder="Admission Type">
+    <input id="Length of Stay" type="number" placeholder="Days">
   </div>
 
-  <button class="btn" id="predictBtn" onclick="predict()">Run Prediction</button>
-
-  <div class="result-box" id="result">
-    <svg class="result-icon" viewBox="0 0 24 24" fill="currentColor" id="result-icon-svg">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-    </svg>
-    <span id="result-text"></span>
+  <div class="grid-2">
+    <input id="Medication" placeholder="Medication">
+    <input id="Billing Amount" type="number" placeholder="Amount">
   </div>
+
+  <input id="Insurance Provider" placeholder="Insurance Provider">
+
+  <button class="btn" onclick="predict()">Run Prediction</button>
+
+  <div id="result" class="result-box"></div>
 
 </div>
 
 <script>
-  // Change this to your deployed API URL before pushing
-  const API_URL = "https://healthcare-ml-api-1.onrender.com/predict";
 
-  async function predict() {
-    const btn = document.getElementById('predictBtn');
-    const resultBox = document.getElementById('result');
-    const resultText = document.getElementById('result-text');
-    const iconSvg = document.getElementById('result-icon-svg');
+const API_URL = "https://healthcare-ml-api-1.onrender.com/predict";
 
-    const getValue = id => document.getElementById(id)?.value?.trim() || '';
+async function predict() {
 
-    const data = {
-      "Age": parseInt(getValue("Age")) || 0,
-      "Gender": getValue("Gender"),
-      "Blood Type": getValue("Blood Type"),
-      "Medical Condition": getValue("Medical Condition"),
-      "Insurance Provider": getValue("Insurance Provider"),
-      "Billing Amount": parseFloat(getValue("Billing Amount")) || 0,
-      "Admission Type": getValue("Admission Type"),
-      "Medication": getValue("Medication"),
-      "Length of Stay": parseInt(getValue("Length of Stay")) || 0
+  const resultBox = document.getElementById("result");
+
+  const data = {
+    "Age": parseInt(document.getElementById("Age").value) || 0,
+    "Gender": document.getElementById("Gender").value,
+    "Blood Type": document.getElementById("Blood Type").value,
+    "Medical Condition": document.getElementById("Medical Condition").value,
+    "Insurance Provider": document.getElementById("Insurance Provider").value,
+    "Billing Amount": parseFloat(document.getElementById("Billing Amount").value) || 0,
+    "Admission Type": document.getElementById("Admission Type").value,
+    "Medication": document.getElementById("Medication").value,
+    "Length of Stay": parseInt(document.getElementById("Length of Stay").value) || 0
+  };
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+
+    console.log("API RESPONSE:", result); // 🔥 DEBUG LINE
+
+    let pred = result.predicted_test_result || result.raw_prediction || "Unknown";
+
+    // map numeric → label
+    const mapping = {
+      "0": "normal",
+      "1": "abnormal",
+      "2": "inconclusive"
     };
 
-    btn.textContent = 'Analyzing...';
-    btn.disabled = true;
-    resultBox.className = 'result-box';
-
-    try {
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      });
-      const result = await response.json();
-      const pred = result.predicted_test_result || 'Unknown';
-      resultText.textContent = 'Predicted Result: ' + pred;
-
-      const lower = pred.toLowerCase();
-      if (lower.includes('normal')) {
-        resultBox.className = 'result-box normal show';
-        iconSvg.innerHTML = '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>';
-      } else if (lower.includes('abnormal')) {
-        resultBox.className = 'result-box abnormal show';
-        iconSvg.innerHTML = '<path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>';
-      } else {
-        resultBox.className = 'result-box inconclusive show';
-        iconSvg.innerHTML = '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>';
-      }
-    } catch (error) {
-      resultText.textContent = 'Unable to connect to prediction API. Please try again.';
-      resultBox.className = 'result-box error show';
-      iconSvg.innerHTML = '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>';
-    } finally {
-      btn.textContent = 'Run Prediction';
-      btn.disabled = false;
+    if (mapping[pred]) {
+      pred = mapping[pred];
     }
+
+    resultBox.innerText = "Prediction: " + pred;
+    resultBox.className = "result-box show " + pred.toLowerCase();
+
+  } catch (error) {
+    resultBox.innerText = "Error connecting to API";
+    resultBox.className = "result-box show error";
   }
+}
+
 </script>
+
 </body>
 </html>
