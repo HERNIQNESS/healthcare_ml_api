@@ -10,9 +10,7 @@ from app.schemas import PatientData
 
 app = FastAPI()
 
-
-# CORS (frontend <-> backend)
-
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,9 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-#  Load model + encoders safely
-
+# Load model + encoders
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 model_path = os.path.join(BASE_DIR, "models", "model.joblib")
@@ -32,9 +28,7 @@ encoder_path = os.path.join(BASE_DIR, "models", "encoders.joblib")
 model = joblib.load(model_path)
 encoders = joblib.load(encoder_path)
 
-
-#  Serve frontend
-
+# Serve frontend
 @app.get("/")
 def serve_frontend():
     return FileResponse(os.path.join(BASE_DIR, "frontend", "index.html"))
@@ -42,15 +36,13 @@ def serve_frontend():
 app.mount("/frontend", StaticFiles(directory=os.path.join(BASE_DIR, "frontend")), name="frontend")
 
 
-# Prediction endpoint 
-
+# Prediction endpoint
 @app.post("/predict")
 def predict(data: PatientData):
     try:
-        # Convert input → DataFrame
         df = pd.DataFrame([data.dict()])
 
-        #  Normalize inputs
+        # Normalize inputs
         df["Gender"] = df["Gender"].str.strip().str.title()
         df["Blood Type"] = df["Blood Type"].str.strip().str.upper()
         df["Medical Condition"] = df["Medical Condition"].str.strip().str.title()
@@ -65,28 +57,31 @@ def predict(data: PatientData):
             "Admission Type", "Medication", "Length of Stay"
         ]]
 
-        #  Apply encoders safely
+        # Apply label encoders to categorical columns
         for col in df.columns:
             if col in encoders:
-                try:
-                    df[col] = encoders[col].transform(df[col])
-                except Exception:
-                    return {
-                        "error": f"Invalid value '{df[col].iloc[0]}' for column '{col}'"
-                    }
+                le = encoders[col]
+                val = df[col].iloc[0]
+                if val in le.classes_:
+                    df[col] = le.transform(df[col])
+                else:
+                    # Unknown value: use the most common class (index 0)
+                    df[col] = 0
 
-        #  Predict
-        prediction = model.predict(df)[0]
+        # Predict — model returns an encoded integer
+        raw_pred = model.predict(df)[0]
 
-        
-        #  DEBUG OUTPUT 
-        
-        return {
-            "raw_prediction": str(prediction),
-            "type": str(type(prediction))
-        }
+        # Decode the integer back to a label (Normal / Abnormal / Inconclusive)
+        if "Test Results" in encoders:
+            label = encoders["Test Results"].inverse_transform([int(raw_pred)])[0]
+        elif "test_results" in encoders:
+            label = encoders["test_results"].inverse_transform([int(raw_pred)])[0]
+        else:
+            # Fallback: manual mapping (check your training script to confirm order)
+            mapping = {0: "Abnormal", 1: "Inconclusive", 2: "Normal"}
+            label = mapping.get(int(raw_pred), str(raw_pred))
+
+        return {"predicted_test_result": label}
 
     except Exception as e:
-        return {
-            "error": str(e)
-        }
+        return {"error": str(e)}
